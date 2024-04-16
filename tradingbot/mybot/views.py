@@ -3,7 +3,7 @@ from binance.client import Client , BinanceAPIException
 from django.http import JsonResponse
 from binance.client import Client
 from datetime import time,datetime
-import time,json
+import time,json,random
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login, logout
 
@@ -171,16 +171,56 @@ def market_maker(request):
         endtime_str = request.POST.get('endtime')
         symbol = request.POST.get('symbol')
         interval = int(request.POST.get('interval'))
-        qty = request.POST.get('qty')      
+        max_qty = float(request.POST.get('max_qty'))   
+        min_qty = float(request.POST.get('min_qty'))  
+        spread = float(request.POST.get('spread'))
         end_time = datetime.strptime(endtime_str, "%H:%M").time()
         start_time = datetime.now().time()
 
-        while running:
-            current_time = datetime.now().time()
-            if start_time <= current_time <= end_time:
-                buy_order = sell_order_market(symbol, qty)
-            time.sleep(interval)
-    return JsonResponse({'status': 'failed'})
+    while running:
+        current_time = datetime.now().time()
+        print('WORKING')
+        if start_time <= current_time <= end_time:
+            buy_qty=round(random.uniform(max_qty,min_qty),3)
+            sell_qty=round(random.uniform(max_qty,min_qty),3)
+            current_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
+
+            buy_price =round((current_price - (current_price * spread)),0) 
+            sell_price = round((current_price + (current_price * spread)),0)
+            print(buy_price,'  ', sell_price)
+
+            try:
+               buy_order= buy_order_limit(symbol,buy_qty,buy_price)
+               sell_order=sell_order_limit(symbol,sell_qty,sell_price)
+               print(f"buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
+               print(f"sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
+               print(current_price)
+            except BinanceAPIException as e:
+                print(f"Error placing order: {e}")
+        time.sleep(interval)
+    return JsonResponse({'status': 'success'})
+
+
+
+def market(request):
+    global running
+    if request.method == 'POST':
+        endtime_str = request.POST.get('endtime')
+        symbol = request.POST.get('symbol')
+        interval = int(request.POST.get('interval'))
+        max_qty = request.POST.get('max_qty')     
+        min_qty = request.POST.get('min_qty')  
+        spread = request.POST.get('spread')
+        end_time = datetime.strptime(endtime_str, "%H:%M").time()
+        start_time = datetime.now().time()
+    print('end time',end_time,'  symbol:',symbol,'  interval',interval)
+    print('start time',start_time,'  max time:',max_qty,'  min',min_qty,'  spread', spread)
+
+
+
+
+
+
 
 
 def stop_market(request):
@@ -188,7 +228,6 @@ def stop_market(request):
     running=False
 
     return JsonResponse({'status':'stopping'})
-
 
 
 def login_view(request):
@@ -208,32 +247,3 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
-def market_make():
-
-    symbol = "BNBUSDT"
-    quantity = 0.1
-
-    while True:
-
-        market_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
-
-
-        spread_percentage = 0.01  
-        buy_price = market_price - (market_price * spread_percentage)
-        sell_price = market_price + (market_price * spread_percentage)
-
-
-        try:
-            buy_order = client.order_market_buy(symbol=symbol, quantity=quantity)
-            sell_order = client.order_market_sell(symbol=symbol, quantity=quantity)
-            print(buy_order)
-            print(sell_order)
-            print(f"Placed buy order at {buy_price} and sell order at {sell_price}")
-        except BinanceAPIException as e:
-            print(f"Error placing order: {e}")
-
-        time.sleep(15)  
-
-    return JsonResponse({'message': 'Market making started (simulated)'})
-
-#market_make()

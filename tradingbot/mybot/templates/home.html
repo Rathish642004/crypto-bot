@@ -123,10 +123,25 @@
               <h2>ENTER COIN PAIR</h2>
               <input type="text" id="coin-maker-symbol" placeholder="Enter Coin Pair">
             </div>
+
             <div class='input-warp'>
-              <h2>MINIMUM QUANTITY</h2>
-              <input type="number" id="coin-maker-quantity" placeholder="Enter Quantity">
+              <div class='qty-field'>
+                <h2>MINIMUM QUANTITY</h2>
+                <input type="number" id="coin-maker-min-quantity" placeholder="Enter minimum Quantity">
+              </div>
+
+              <div class='qty-field'>
+                <h2>MAXIMUM QUANTITY</h2>
+                <input type="number" id="coin-maker-max-quantity" placeholder="Enter maximum Quantity">
+              </div>
+              
             </div>
+
+            <div class='input-warp'>
+              <h2>SPREAD</h2>
+              <input type="number" id="coin-maker-spread" placeholder="Enter SPREAD">
+            </div>
+
             <div class='input-warp'>
               <h2>ENTER TIME INTERVEL</h2>
               <input type="text" id="time-interval" placeholder="Enter time interval in second">
@@ -278,13 +293,21 @@
       $("#start-market-maker").click(function() {
         var endtime= $("#endtime").val();
         var symbol =  $("#coin-maker-symbol").val();
-        var quantity= $("#coin-maker-quantity").val();
+        var min_quantity= $("#coin-maker-min-quantity").val();
+        var max_quantity= $("#coin-maker-max-quantity").val();
+        var spread= $("#coin-maker-spread").val();
         var interval =$("#time-interval").val();
         sendAjaxRequest(
             "{% url 'market_maker' %}",
-            { 'endtime': endtime, 'symbol': symbol, 'qty':quantity, 'interval': interval },
+            { 'endtime': endtime, 
+              'symbol': symbol,
+              'max_qty':max_quantity, 
+              'min_qty':min_quantity,
+              'spread':spread,
+              'interval': interval,
+             },
         );
-        console.log('time:',endtime,'symbol:',symbol,'qty:',quantity,'interval:',interval)
+        console.log('time:',endtime,'symbol:',symbol,'min_qty:',min_quantity,'max_qty:',max_quantity,'interval:',interval,'spread:',spread)
       })
 
       $("#stop-market-maker").click(function() {

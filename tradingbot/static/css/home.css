@@ -73,9 +73,9 @@ button{
   margin-left: 10px; /* Add some space between buttons */
 }
 
-.input-warp input{
+input{
   align-items: center;
-  width: 540px; /* Make input fields full width */
+  width: 620px; /* Make input fields full width */
   padding: 10px;
   border: 1px solid #ccc; /* Light border for input fields */
   border-radius: 20px;
@@ -129,4 +129,13 @@ button{
   padding: 5px;
   border-radius: 10px ;
   cursor: pointer;
+}
+
+.qty-field{
+  display: inline-block;
+  width: 300px;
+}
+
+.qty-field input{
+  width: 250px;
 }
