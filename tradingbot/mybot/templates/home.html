@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+{% csrf_token %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  </head>
+  <body>
+    <div class="balance" id="balance">
+      Balance
+        
+    </div>
+    <div class="bal-view" id="bal-view">
+      <div class="x" id="x">x</div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Free Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for asset in account_info.balances %}
+              <tr>
+                <td>{{ asset.asset }}</td>
+                <td>{{ asset.free }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+        
+    </div>
+    <main>
+      <div class='container'>
+        <div>
+          <h1>Trading</h1>
+        </div>
+        <div class='selection'>
+          <button class="trading-button" data-section='market'>
+            Current Market Trading
+          </button>
+          <button class="trading-button" data-section='limit'>
+            Limit Trading
+          </button>
+          <button class="trading-button" data-section='cancel'>
+            Cancel Order
+          </button>
+        </div>
+        <div class='selection'>
+          <button class="trading-button" data-section='market-maker'>
+            market-maker
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <div class='midil'>
+
+      <div class='trading-section market-trading-section'>
+        <div class="container">
+          <div class="header">
+            <h1>CURRENT MARKET TRADING</h1>
+          </div>
+          <div class="trade-section">
+            <div class='input-warp'>
+              <h2>ENTER COIN PAIR</h2>
+              <input type="text" id="symbol" placeholder="Enter Coin Pair">
+            </div>
+            <div class='input-warp'>
+              <h2>ENTER QUANTITY</h2>
+              <input type="number" id="quantity" placeholder="Enter Quantity">
+            </div>
+            <div class='buysell'>
+              <button class="buttons" id="market-buy">BUY</button>
+              <button class="buttons" id="market-sell">SELL</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class='trading-section limit-trading-section'>
+        <div class="container">
+          <div class="header">
+            <h1>LIMIT TRADING</h1>
+          </div>
+          <div class="trade-section">
+            <div class='input-warp'>
+              <h2>ENTER COIN PAIR</h2>
+              <input type="text" id="limit-symbol" placeholder="Enter Coin Pair">
+            </div>
+            <div class='input-warp'>
+              <h2>ENTER QUANTITY</h2>
+              <input type="number" id="limit-quantity" placeholder="Enter Quantity">
+            </div>
+            <div class='input-warp'>
+              <h2>ENTER PRICE</h2>
+              <input type="number" id="limit-price" placeholder="Enter price">
+            </div>
+            <div class='buysell'>
+              <button class="buttons" id="limit-buy">BUY</button>
+              <button class="buttons" id="limit-sell">SELL</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class='trading-section market-maker-trading-section'>
+        <div class="container">
+          <div class="header">
+            <h1>MARKET MAKER</h1>
+          </div>
+          <div class="trade-section">
+            <div class='input-warp'>
+              <h2>ENTER COIN PAIR</h2>
+              <input type="text" id="coin-maker-symbol" placeholder="Enter Coin Pair">
+            </div>
+            <div class='input-warp'>
+              <h2>MINIMUM QUANTITY</h2>
+              <input type="number" id="coin-maker-quantity" placeholder="Enter Quantity">
+            </div>
+            <div class='input-warp'>
+              <h2>ENTER TIME INTERVEL</h2>
+              <input type="text" id="time-interval" placeholder="Enter time interval in second">
+            </div>
+
+            <div class='input-warp'>
+              <h2>ENTER END TIME</h2>
+              <input type='time' id = 'endtime'>
+            </div>
+
+            <div class='buysell'>
+              <button class="time-button" id="start-market-maker">START</button>
+              <button class="time-button" id="stop-market-maker">STOP</button>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+
+      <div class='trading-section cancel-trading-section'>
+        <div class="container">
+          <div class="header">
+            <h1>CANCEL ORDER</h1>
+          </div>
+          <div class="trade-section">
+            <div class='input-warp'>
+              <h2>ENTER COIN PAIR</h2>
+              <input type="text" id="symbol" placeholder="Enter Coin Pair">
+            </div>
+            <div class='buysell'>
+              <button class="buttons" id="cancel">CANCEL</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    <div id="order-details"></div>
+  </body>
+  <script>
+
+    function getCookie(name) {
+      var cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          var cookies = document.cookie.split(';');
+          for (var i = 0; i < cookies.length; i++) {
+              var cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+    }
+    
+
+    function csrfSafeMethod(method) {
+      return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
+    }
+    
+
+    function sendAjaxRequest(url, data, successCallback, errorCallback) {
+      $.ajax({
+          type: "POST",
+          url: url,
+          data: data,
+          beforeSend: function(xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+              }
+          },
+          success: successCallback,
+          error: errorCallback
+      });
+    }
+    $(document).ready(function() {
+      $(".trading-button").click(function() {
+        var section = $(this).data("section");
+        $(".trading-section").hide();
+        $("." + section + "-trading-section").show();
+        });
+
+      $(".balance").click(function() {
+        $(".bal-view").show();
+        $(".balance").hide();
+      });
+      $(".x").click(function() {
+        $(".bal-view").hide();
+        $(".balance").show();
+      });
+
+      $("#market-buy").click(function() {
+        var symbol = $("#symbol").val();
+        var quantity = $("#quantity").val();
+        sendAjaxRequest(
+          "{% url 'buy_order_market' %}",
+          { 'symbol': symbol, 'qty': quantity },
+          function(response) {
+            console.log(response);
+            let ref = alert('Your buy order is placed');
+            if (ref === true) {  
+              "{% url 'home' %}"
+            }
+          },
+          function(xhr, status, error) {
+            console.error(xhr.responseText);
+          }
+        );
+      });
+      
+  
+      $("#market-sell").click(function() {
+          var symbol = $("#symbol").val();
+          var quantity = $("#quantity").val();
+          sendAjaxRequest(
+              "{% url 'sell_order_market' %}",
+              { 'symbol': symbol, 'qty': quantity },
+              function(response) {
+                  console.log(response);
+                  alert('Your sell order is placed');
+              },
+              function(xhr, status, error) {
+                  console.error(xhr.responseText);
+              }
+          );
+      });
+
+      $("#limit-buy").click(function() {
+        var symbol = $("#limit-symbol").val();
+        var quantity = $("#limit-quantity").val();
+        var price = $("#limit-price").val();
+        console.log(symbol); // Add this line to check symbol value
+        sendAjaxRequest(
+            "{% url 'buy_order_limit' %}",
+            { 'symbol': symbol, 'qty': quantity, 'price': price },
+            function(response) {
+                console.log(response);
+                alert('Your buy order is placed');
+            },
+            function(xhr, status, error) {
+                console.error(xhr.responseText);
+            }
+        );
+      });
+
+      $("#start-market-maker").click(function() {
+        var endtime= $("#endtime").val();
+        var symbol =  $("#coin-maker-symbol").val();
+        var quantity= $("#coin-maker-quantity").val();
+        var interval =$("#time-interval").val();
+        sendAjaxRequest(
+            "{% url 'market_maker' %}",
+            { 'endtime': endtime, 'symbol': symbol, 'qty':quantity, 'interval': interval },
+        );
+        console.log('time:',endtime,'symbol:',symbol,'qty:',quantity,'interval:',interval)
+      })
+
+      $("#stop-market-maker").click(function() {
+        sendAjaxRequest(
+            "{% url 'stop_market' %}",
+        );
+      })
+
+    
+      $("#limit-sell").click(function() {
+          var symbol = $("#limit-symbol").val();
+          var quantity = $("#limit-quantity").val();
+          var price = $("#limit-price").val();
+          sendAjaxRequest(
+              "{% url 'sell_order_limit' %}",
+              { 'symbol': symbol, 'qty': quantity,'price': price },
+              function(response) {
+                  console.log(response);
+                  let ref=alert('Your sell order is placed');
+                  if (ref){
+                    "{% url 'home' %}"
+                  }
+              },
+              function(xhr, status, error) {
+                  console.error(xhr.responseText);
+              }
+          );
+      })
+
+      $("#cancel").click(function() {
+        var symbol = $("#symbol").val();
+        sendAjaxRequest(
+            "{% url 'cancel_order' %}",
+            { 'symbol': symbol},
+            function(response) {
+                console.log(response);
+                alert('Your order canceld');
+            },
+            function(xhr, status, error) {
+                console.error(xhr.responseText);
+            }
+        );
+      })
+
+    });;
+  </script>
+  
+
+</html>
+
+
+

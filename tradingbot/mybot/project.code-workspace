@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "../../../project"
+		},
+		{
+			"path": "../../../../java_script"
+		},
+		{
+			"path": "../../../../HTML-CSS"
+		},
+		{
+			"path": "../../../../python"
+		},
+		{
+			"path": "C:/Users/rathi/Desktop/myprojects"
+		},
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "java_script"
+	}
+}
