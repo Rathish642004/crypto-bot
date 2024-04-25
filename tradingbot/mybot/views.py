@@ -94,7 +94,7 @@ def buy_order_limit(symbol, qty, price):
         quantity=qty,
         price=price,
     )
-    print('ORDER',order)
+    return(order)
 
 def sell_order_limit_view(request):
     if request.method == 'POST':
@@ -117,7 +117,7 @@ def sell_order_limit(symbol, qty, price):
         quantity=qty,
         price=price,
     )
-    print('SELL',order)
+    return(order)
 
 def cancel_order_view(request):
     if request.method == 'POST':
@@ -141,15 +141,6 @@ def cancel_order(symbol):
         if order_status['status'] == 'CANCELED':
             print(f"Canceled order: {orders['orderId']}")
     
-
-
-
-
-
-
-
-
-
 def myorder(request):
 
 
@@ -247,3 +238,67 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+def market_clear(request):
+    global running
+    running= True
+    # Get symbol information (assuming you have a function to retrieve it)
+    symbol_info = get_symbol_info(request.POST.get('symbol'))
+
+    if request.method == 'POST':
+        endtime_str = request.POST.get('endtime')
+        symbol = request.POST.get('symbol')
+        interval = int(request.POST.get('interval'))
+
+        # Validate and adjust quantities based on symbol filters (LOT_SIZE, MIN_QTY)
+        max_qty = float(request.POST.get('max_qty'))
+        min_qty = float(request.POST.get('min_qty'))
+        max_qty = min(max_qty, float(symbol_info['filters'][1]['maxQty']))
+        min_qty = max(min_qty, float(symbol_info['filters'][1]['minQty']))
+
+        spread = float(request.POST.get('spread'))
+        end_time = datetime.strptime(endtime_str, "%H:%M").time()
+        start_time = datetime.now().time()
+
+        while running:
+            current_time = datetime.now().time()
+            print('WORKING')
+
+            if start_time <= current_time <= end_time:
+                # Generate random quantities within adjusted limits
+                buy_qty = round(random.uniform(max_qty, min_qty), 4)
+                sell_qty = round(random.uniform(max_qty, min_qty), 4)
+
+                current_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
+                print('current_price', current_price)
+
+                # Calculate buy and sell prices with spread, considering price filter (PRICE_FILTER)
+                price_filter = symbol_info['filters'][0]
+                min_price = float(price_filter['minPrice'])
+                max_price = float(price_filter['maxPrice'])
+                tick_size = float(price_filter['tickSize'])
+
+                buy_price = max(min_price, round(current_price - (current_price * spread),0))
+                sell_price = min(max_price, round(current_price + (current_price * spread),0))
+
+                print('buy_price', buy_price, ' ', 'sell_price', sell_price)
+                print('buy qty', buy_qty, ' ', 'sell qty', sell_qty)
+
+                try:
+                    # Place orders with quantity and price validation (LOT_SIZE, MIN_QTY, PRICE_FILTER)
+                    buy_order = buy_order_limit(symbol, buy_qty, buy_price)
+                    sell_order = sell_order_limit(symbol, sell_qty, sell_price)
+
+
+                    print(f"buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
+                    print(f"sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
+                except BinanceAPIException as e:
+                    print(f"Error placing order: {e}")
+            time.sleep(interval)
+
+    return JsonResponse({'status': 'success'})
+
+# Function to retrieve symbol information from Binance (replace with your actual implementation)
+def get_symbol_info(symbol):
+    # Replace with your Binance client and logic to fetch symbol info
+    # This example assumes you have a `client` object with the Binance API connection
+    return client.get_symbol_info(symbol=symbol)
