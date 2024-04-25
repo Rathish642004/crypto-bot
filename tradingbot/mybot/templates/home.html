@@ -156,8 +156,6 @@
               <button class="time-button" id="start-market-maker">START</button>
               <button class="time-button" id="stop-market-maker">STOP</button>
             </div>
-
-
           </div>
         </div>
       </div>
@@ -237,21 +235,25 @@
       });
 
       $("#market-buy").click(function() {
+
         var symbol = $("#symbol").val();
         var quantity = $("#quantity").val();
+        if (!validateInputs1(symbol, quantity)) {
+          // If validation fails, return without sending the AJAX request
+          return;
+        }
         sendAjaxRequest(
           "{% url 'buy_order_market' %}",
           { 'symbol': symbol, 'qty': quantity },
           function(response) {
             console.log(response);
-            let ref = alert('Your buy order is placed');
-            if (ref === true) {  
-              "{% url 'home' %}"
-            }
+            alert('Your buy order is placed');
+            // Update the balance in the DOM
+            $('#balance').text(response.balance);
           },
-          function(xhr, status, error) {
-            console.error(xhr.responseText);
-          }
+            function(xhr, status, error) {
+              console.error(xhr.responseText);
+            }
         );
       });
       
@@ -259,6 +261,9 @@
       $("#market-sell").click(function() {
           var symbol = $("#symbol").val();
           var quantity = $("#quantity").val();
+          if (!validateInputs1(symbol, quantity)) {
+            return;
+          }
           sendAjaxRequest(
               "{% url 'sell_order_market' %}",
               { 'symbol': symbol, 'qty': quantity },
@@ -276,7 +281,7 @@
         var symbol = $("#limit-symbol").val();
         var quantity = $("#limit-quantity").val();
         var price = $("#limit-price").val();
-        console.log(symbol); // Add this line to check symbol value
+        validateInputs2(symbol, quantity,price);
         sendAjaxRequest(
             "{% url 'buy_order_limit' %}",
             { 'symbol': symbol, 'qty': quantity, 'price': price },
@@ -290,6 +295,27 @@
         );
       });
 
+      $("#limit-sell").click(function() {
+        var symbol = $("#limit-symbol").val();
+        var quantity = $("#limit-quantity").val();
+        var price = $("#limit-price").val();
+        validateInputs2(symbol, quantity,price);
+        sendAjaxRequest(
+            "{% url 'sell_order_limit' %}",
+            { 'symbol': symbol, 'qty': quantity,'price': price },
+            function(response) {
+                console.log(response);
+                let ref=alert('Your sell order is placed');
+                if (ref){
+                  "{% url 'home' %}"
+                }
+            },
+            function(xhr, status, error) {
+                console.error(xhr.responseText);
+            }
+        );
+      })
+
       $("#start-market-maker").click(function() {
         var endtime= $("#endtime").val();
         var symbol =  $("#coin-maker-symbol").val();
@@ -297,6 +323,9 @@
         var max_quantity= $("#coin-maker-max-quantity").val();
         var spread= $("#coin-maker-spread").val();
         var interval =$("#time-interval").val();
+        if (!validateInputs3(symbol,min_quantity,max_quantity,spread,interval)) {
+          return;
+        }
         sendAjaxRequest(
             "{% url 'market_maker' %}",
             { 'endtime': endtime, 
@@ -324,25 +353,7 @@
       })
 
     
-      $("#limit-sell").click(function() {
-          var symbol = $("#limit-symbol").val();
-          var quantity = $("#limit-quantity").val();
-          var price = $("#limit-price").val();
-          sendAjaxRequest(
-              "{% url 'sell_order_limit' %}",
-              { 'symbol': symbol, 'qty': quantity,'price': price },
-              function(response) {
-                  console.log(response);
-                  let ref=alert('Your sell order is placed');
-                  if (ref){
-                    "{% url 'home' %}"
-                  }
-              },
-              function(xhr, status, error) {
-                  console.error(xhr.responseText);
-              }
-          );
-      })
+
 
       $("#cancel").click(function() {
         var symbol = $("#symbol").val();
@@ -359,10 +370,60 @@
         );
       })
 
+      function validateInputs1(symbol, quantity) {
+        if (symbol.trim() === '') {
+            alert('Please enter a symbol.');
+            return false;
+        }
+        if (isNaN(quantity) || quantity <= 0) {
+            alert('Please enter a valid quantity.');
+            return false;
+        }
+        return true;
+      }
+
+      function validateInputs2(symbol, quantity) {
+        if (symbol.trim() === '') {
+            alert('Please enter a symbol.');
+            return false;
+        }
+        if (isNaN(quantity) || quantity <= 0) {
+            alert('Please enter a valid quantity.');
+            return false;
+        }
+        if (isNaN(price) || price <= 0) {
+          alert('Please enter a valid price.');
+          return false;
+        }
+        return true;
+      }
+
+      function validateInputs3(symbol, min_qty,max_qty,spread,interval) {
+        if (symbol.trim() === '') {
+            alert('Please enter a symbol.');
+            return false;
+        }
+        if (isNaN(min_qty) || min_qty < 0.005) {
+          alert('Please enter a valid min quantity. Minimum quatity is 0.005');
+          return false;
+        }
+        if (isNaN(max_qty) || max_qty < 0) {
+          alert('Please enter a valid max quantity.');
+          return false;
+        }
+        if (isNaN(spread) || spread < 0) {
+          alert('Please enter a valid spread.');
+          return false;
+        }
+        if (isNaN(interval) || interval < 0) {
+          alert('Please enter a valid Time interval.');
+          return false;
+        }
+        return true;
+      }
+
     });;
   </script>
-  
-
 </html>
 
 

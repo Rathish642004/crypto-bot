@@ -19,5 +19,10 @@ class TradingPair(models.Model):
     buy_price = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True)
     sell_price = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True)
 
+class Placedorder(models.Model):
+    orderid =models.DecimalField( max_digits=20, decimal_places=0)
+    symbol = models.CharField(max_length=10)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
 
 
