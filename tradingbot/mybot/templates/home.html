@@ -313,6 +313,13 @@
       $("#stop-market-maker").click(function() {
         sendAjaxRequest(
             "{% url 'stop_market' %}",
+            function(response) {
+              console.log(response);
+              let ref = alert('Your buy order is placed');
+              if (ref === true) {  
+                "{% url 'home' %}"
+              }
+            }
         );
       })
 

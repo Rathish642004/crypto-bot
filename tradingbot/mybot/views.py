@@ -6,7 +6,6 @@ from datetime import time,datetime
 import time,json,random
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login, logout
-
 running=True
 API_KEY = '6eXmuCXxnQq1uLMRqKeWejo0iAnl7vKs6kenNn0p8vQWMIE9eALt35FG54RtroU1'
 API_SECRET = '6kkY5VGELHXGodCHCJmYj50k3atEGh7VgaI2uQE3VRiGrNCS7AEWw3yuW0GNl6Bq'
@@ -167,7 +166,8 @@ def market_maker(request):
         spread = float(request.POST.get('spread'))
         end_time = datetime.strptime(endtime_str, "%H:%M").time()
         start_time = datetime.now().time()
-
+        symbol_details=client.get_symbol_info
+    
     while running:
         current_time = datetime.now().time()
         print('WORKING')
@@ -175,10 +175,11 @@ def market_maker(request):
             buy_qty=round(random.uniform(max_qty,min_qty),3)
             sell_qty=round(random.uniform(max_qty,min_qty),3)
             current_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
-
+            print('current_price',current_price)
             buy_price =round((current_price - (current_price * spread)),0) 
             sell_price = round((current_price + (current_price * spread)),0)
-            print(buy_price,'  ', sell_price)
+            print('buy_price',buy_price,'  ', 'sell_price',sell_price)
+            print('buy qty',buy_qty,'   ','sell qty',sell_qty)
 
             try:
                buy_order= buy_order_limit(symbol,buy_qty,buy_price)
@@ -190,6 +191,7 @@ def market_maker(request):
                 print(f"Error placing order: {e}")
         time.sleep(interval)
     return JsonResponse({'status': 'success'})
+    
 
 
 
@@ -206,12 +208,6 @@ def market(request):
         start_time = datetime.now().time()
     print('end time',end_time,'  symbol:',symbol,'  interval',interval)
     print('start time',start_time,'  max time:',max_qty,'  min',min_qty,'  spread', spread)
-
-
-
-
-
-
 
 
 def stop_market(request):
@@ -238,16 +234,24 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+<<<<<<< HEAD
 def market_clear(request):
     global running
     running= True
     # Get symbol information (assuming you have a function to retrieve it)
     symbol_info = get_symbol_info(request.POST.get('symbol'))
 
+=======
+
+def market_clear(request):
+    print('kk')
+    global running
+>>>>>>> 7b61b52ed5717747c0dcac618a91577805887532
     if request.method == 'POST':
         endtime_str = request.POST.get('endtime')
         symbol = request.POST.get('symbol')
         interval = int(request.POST.get('interval'))
+<<<<<<< HEAD
 
         # Validate and adjust quantities based on symbol filters (LOT_SIZE, MIN_QTY)
         max_qty = float(request.POST.get('max_qty'))
@@ -255,10 +259,15 @@ def market_clear(request):
         max_qty = min(max_qty, float(symbol_info['filters'][1]['maxQty']))
         min_qty = max(min_qty, float(symbol_info['filters'][1]['minQty']))
 
+=======
+        max_qty = float(request.POST.get('max_qty'))   
+        min_qty = float(request.POST.get('min_qty'))  
+>>>>>>> 7b61b52ed5717747c0dcac618a91577805887532
         spread = float(request.POST.get('spread'))
         end_time = datetime.strptime(endtime_str, "%H:%M").time()
         start_time = datetime.now().time()
 
+<<<<<<< HEAD
         while running:
             current_time = datetime.now().time()
             print('WORKING')
@@ -302,3 +311,52 @@ def get_symbol_info(symbol):
     # Replace with your Binance client and logic to fetch symbol info
     # This example assumes you have a `client` object with the Binance API connection
     return client.get_symbol_info(symbol=symbol)
+=======
+        # Get symbol details
+        symbol_details = client.get_symbol_info(symbol=symbol)
+
+        # Check if symbol is valid
+        if not symbol_details:
+            print('invalid spread chang it')
+            return JsonResponse({'status': 'error', 'message': 'Invalid symbol'})
+
+        # Extracting relevant information from symbol_details
+        min_price = float(symbol_details['filters'][0]['minPrice'])
+        max_price = float(symbol_details['filters'][0]['maxPrice'])
+        min_qty_allowed = float(symbol_details['filters'][1]['minQty'])
+        max_qty_allowed = float(symbol_details['filters'][1]['maxQty'])
+        current_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
+
+        if (current_price *min_qty) < min_price or (current_price * max_qty) > max_price:
+            print('invalid spread chang it')
+            return JsonResponse({'status': 'error', 'message': 'Invalid spread'})
+
+
+        # Check if specified quantities are within the allowed range
+        if min_qty < min_qty_allowed or max_qty > max_qty_allowed:
+            print('quantity range chang it')
+            return JsonResponse({'status': 'error', 'message': 'Invalid quantity range'})
+
+    while running:
+        current_time = datetime.now().time()
+        print('WORKING')
+        if start_time <= current_time <= end_time:
+            buy_qty = round(random.uniform(max_qty, min_qty), 3)
+            sell_qty = round(random.uniform(max_qty, min_qty), 3)
+            current_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
+            print(current_price)
+            buy_price = round((current_price - (current_price * spread)), 0) 
+            sell_price = round((current_price + (current_price * spread)), 0)
+            print(buy_price, '  ', sell_price)
+
+            try:
+               buy_order = buy_order_limit(symbol, buy_qty, buy_price)
+               sell_order = sell_order_limit(symbol, sell_qty, sell_price)
+               print(f"buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
+               print(f"sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
+               print(current_price)
+            except BinanceAPIException as e:
+                print(f"Error placing order: {e}")
+        time.sleep(interval)
+    return JsonResponse({'status': 'success'})
+>>>>>>> 7b61b52ed5717747c0dcac618a91577805887532
