@@ -13,8 +13,6 @@ urlpatterns = [
     path('cancel_order/', views.cancel_all_order_view, name='cancel_order'),
     path('market_maker/', views.market_clear,name='market_maker'),
     path('stop_market/', views.stop_market,name='stop_market'),
-    path('login/', views.login_view,name='login'),
-    path('logout/', views.logout_view,name='logout'),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

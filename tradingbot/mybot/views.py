@@ -3,7 +3,7 @@ from binance.client import Client , BinanceAPIException
 from django.http import JsonResponse
 from binance.client import Client
 from datetime import time,datetime,timedelta
-import time,json,random,threading
+import time,json,random,threading,requests,hmac,hashlib
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login, logout
 from .models import Placedorder
@@ -258,43 +258,54 @@ def stop_market(request):
 
     return JsonResponse({'status':'stopping'})
 
+def signature(params):
+    timestamp = int(time.time() * 1000)
+    params['timestamp'] = timestamp
 
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('home')
-        else:
-            return render(request, 'login.html', {'error_message': 'Invalid credentials'})
-    else:
-        return render(request, 'login.html')
+    recv_window = 5000 
+    params['recvWindow'] = recv_window
 
-def logout_view(request):
-    logout(request)
-    return redirect('login')
+    query_string = '&'.join([f'{param}={value}' for param, value in params.items()])
+
+    signature = hmac.new(API_SECRET.encode(), query_string.encode(), hashlib.sha256).hexdigest()
+
+    params['signature'] = signature
+    return params
 
 
+def market_order(symbol,side,quantity,type):
+    params = {
+        'symbol': symbol,
+        'side': side,
+        'type': 'MARKET',
+        'quantity': quantity,
+    }
+
+    params=signature(params)
+    headers = {'X-MBX-APIKEY': API_KEY}
+    response = requests.post('https://testnet.binance.vision/api/v3/order', headers=headers, data=params)
+
+    order=response.json()
+    return order
+
+def limit_order(symbol,side,quantity,price):
+    params = {
+        'symbol': symbol,
+        'side': side,
+        'type': 'LIMIT',
+        'quantity': quantity,
+        'timeInForce': 'GTC',
+        'price': price,
+    }
+
+    params=signature(params)
+    headers = {'X-MBX-APIKEY': API_KEY}
+    response = requests.post('https://testnet.binance.vision/api/v3/order', headers=headers, data=params)
+
+    order=response.json()
+    return order    
 
 
-    
-    # Define the duration after which unplaced orders should be canceled (e.g., 5 minutes)
-    cancel_duration = timedelta(minutes=20)
-
-    if (current_time - buy_placement_time) > cancel_duration:
-        # Cancel the unplaced buy order
-        cancel_order()
-        print("Buy order canceled after timeout.")
-        del order_placement['buy']
-
-    if (current_time - sell_placement_time) > cancel_duration:
-        # Cancel the unplaced sell order
-        cancel_order()
-        print("Sell order canceled after timeout.")
-        del order_placement['sell']
-    
 def market_clear(request):
     global running
     running = True
@@ -348,19 +359,28 @@ def bot1(symbol,max_qty,min_qty,spread,interval,end_time,symbol_info):
 
             try:
                 # Place orders with quantity and price validation (LOT_SIZE, MIN_QTY, PRICE_FILTER)
-                buy_order = buy_order_limit(symbol, buy_qty, buy_price)
-                sell_order = sell_order_limit(symbol, sell_qty, sell_price)
-
-                save_order_to_db(symbol, buy_order['orderId'], current_time)
-                save_order_to_db(symbol, sell_order['orderId'], current_time)
-                print('current_price: ',current_price)
-                print("bot 1")
-                print(f"Buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
-                print(f"Sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
-                print(' ')
+                buy_order = limit_order(   
+                    symbol=symbol,
+                    side = 'BUY',
+                    quantity=buy_qty,
+                    price=buy_price
+                )
+                sell_order = limit_order(   
+                    symbol=symbol,
+                    side = 'SELL',
+                    quantity=sell_qty,
+                    price=sell_price
+                )
+                if 'symbol' in buy_order:
+                    print('current_price: ',current_price)
+                    print("bot 1")
+                    print(f"Buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
+                    print(f"Sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
+                    print(' ')
+                else:
+                    print('bot 1 order not placed')
             except BinanceAPIException as e:
                 print(f"Error placing order: {e}")
-            cancel_timed_out_orders(symbol)
         else:
             running=False
             print("bot stoped")
@@ -391,15 +411,27 @@ def bot2(symbol,max_qty,min_qty,spread,interval,end_time,symbol_info):
 
             try:
                 # Place orders with quantity and price validation (LOT_SIZE, MIN_QTY, PRICE_FILTER)
-                buy_order = buy_order_limit1(symbol, buy_qty, buy_price)
-                sell_order = sell_order_limit1(symbol, sell_qty, sell_price)
+                buy_order = limit_order(   
+                    symbol=symbol,
+                    side = 'BUY',
+                    quantity=buy_qty,
+                    price=buy_price
+                )
+                sell_order = limit_order(   
+                    symbol=symbol,
+                    side = 'SELL',
+                    quantity=sell_qty,
+                    price=sell_price
+                )
 
-                save_order_to_db(symbol, buy_order['orderId'], current_time)
-                save_order_to_db(symbol, sell_order['orderId'], current_time)
-                print("bot 2")
-                print(f"Buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
-                print(f"Sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
-                print(' ')
+                if 'symbol' in buy_order:
+                    print("bot 2")
+                    print(f"Buy order: price {buy_order['price']} quantity {buy_order['origQty']}")
+                    print(f"Sell order: price {sell_order['price']} quantity {sell_order['origQty']}")
+                    print(' ')
+                else:
+                    print('bot 2 order not placed')
+
             except BinanceAPIException as e:
                 print(f"Error placing order: {e}")
             cancel_timed_out_orders(symbol)
@@ -407,30 +439,6 @@ def bot2(symbol,max_qty,min_qty,spread,interval,end_time,symbol_info):
             running=False
             print("bot stoped")
         time.sleep(interval)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Function to retrieve symbol information from Binance (replace with your actual implementation)
